@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Job Application Tracker</h1>
+
+        <div class="nav">
+            <a href="/">Dashboard</a>
+            <a href="/applications/add">Add New Application</a>
+            <a href="/trash">Trash</a>
+        </div>
+
+        <form action="/applications" method="GET" class="filter-form">
+            <input
+                type="text"
+                name="search"
+                placeholder="Search by company, position, or memo"
+                value="{{ search or '' }}"
+            >
+
+            <select name="status">
+                <option value="">All Statuses</option>
+                <option value="未応募" {% if status == "未応募" %}selected{% endif %}>未応募</option>
+                <option value="応募済み" {% if status == "応募済み" %}selected{% endif %}>応募済み</option>
+                <option value="面接予定" {% if status == "面接予定" %}selected{% endif %}>面接予定</option>
+                <option value="内定" {% if status == "内定" %}selected{% endif %}>内定</option>
+                <option value="不合格" {% if status == "不合格" %}selected{% endif %}>不合格</option>
+            </select>
+
+            <select name="sort">
+                <option value="">Newest First</option>
+                <option value="deadline" {% if sort == "deadline" %}selected{% endif %}>Deadline Soon</option>
+                <option value="company" {% if sort == "company" %}selected{% endif %}>Company A-Z</option>
+            </select>
+
+            <button type="submit">Apply</button>
+        </form>
+
+        <a href="/applications">Clear Filters</a>
+
+        {% for application in applications %}
+            <div class="card">
+                <h2>{{ application.company }}</h2>
+
+                <p><strong>Position:</strong> {{ application.position }}</p>
+                <p><strong>Status:</strong> <span class="badge">{{ application.status }}</span></p>
+                <p><strong>Deadline:</strong> {{ application.deadline }}</p>
+                <p><strong>Memo:</strong> {{ application.memo }}</p>
+
+                <div class="actions">
+                    <a href="/applications/{{ application.id }}/edit">Edit</a>
+
+                    <form action="/applications/{{ application.id }}/trash" method="POST">
+                        <button type="submit" class="delete-button">Move to Trash</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p class="empty-message">No applications found.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

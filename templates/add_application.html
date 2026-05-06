@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Application</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Add New Application</h1>
+
+        <div class="nav">
+            <a href="/applications">Back to Applications</a>
+        </div>
+
+        <div class="form-box">
+            <form action="/applications/add" method="POST">
+                <label>Company</label>
+                <input type="text" name="company">
+
+                <label>Position</label>
+                <input type="text" name="position">
+
+                <label>Status</label>
+                <select name="status">
+                    <option value="未応募">未応募</option>
+                    <option value="応募済み">応募済み</option>
+                    <option value="面接予定">面接予定</option>
+                    <option value="内定">内定</option>
+                    <option value="不合格">不合格</option>
+                </select>
+
+                <label>Deadline</label>
+                <input type="date" name="deadline">
+
+                <label>Memo</label>
+                <textarea name="memo"></textarea>
+
+                <button type="submit">Add</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

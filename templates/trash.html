@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Trash</title>
+</head>
+<body>
+    <h1>Trash</h1>
+
+    <a href="/applications">Back to Applications</a>
+
+    <hr>
+
+    {% for application in applications %}
+        <div>
+            <h2>{{ application.company }}</h2>
+            <p>Position: {{ application.position }}</p>
+            <p>Status: {{ application.status }}</p>
+
+            <form action="/applications/{{ application.id }}/restore" method="POST">
+                <button type="submit">Restore</button>
+            </form>
+
+            <form action="/applications/{{ application.id }}/delete" method="POST">
+                <button type="submit">Delete Forever</button>
+            </form>
+        </div>
+
+        <hr>
+    {% endfor %}
+</body>
+</html>

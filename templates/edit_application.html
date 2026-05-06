@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Edit Application</title>
+</head>
+<body>
+    <h1>Edit Application</h1>
+
+    <form action="/applications/{{ application.id }}/edit" method="POST">
+        <label>Company</label><br>
+        <input type="text" name="company" value="{{ application.company }}"><br><br>
+
+        <label>Position</label><br>
+        <input type="text" name="position" value="{{ application.position }}"><br><br>
+
+        <label>Status</label><br>
+        <select name="status">
+            <option value="未応募" {% if application.status == "未応募" %}selected{% endif %}>未応募</option>
+            <option value="応募済み" {% if application.status == "応募済み" %}selected{% endif %}>応募済み</option>
+            <option value="面接予定" {% if application.status == "面接予定" %}selected{% endif %}>面接予定</option>
+            <option value="内定" {% if application.status == "内定" %}selected{% endif %}>内定</option>
+            <option value="不合格" {% if application.status == "不合格" %}selected{% endif %}>不合格</option>
+        </select><br><br>
+        <label>Deadline</label><br>
+        <input type="date" name="deadline" value="{{ application.deadline }}"><br><br>
+
+        <label>Memo</label><br>
+        <textarea name="memo">{{ application.memo }}</textarea><br><br>
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <br>
+
+    <a href="/applications">Back</a>
+</body>
+</html>
