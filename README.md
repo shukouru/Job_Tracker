@@ -53,6 +53,8 @@ job_tracker/
 │   └── trash.html
 ├── .gitignore
 └── README.md
+
+```
 # Job Application Tracker
 
 A Flask web application for managing internship and job applications.
