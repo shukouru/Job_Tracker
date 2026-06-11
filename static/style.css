@@ -47,22 +47,41 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    align-items: center;
 }
 
-.nav a {
+.nav a,
+.nav-button {
     border: 1px solid #cbd5d0;
     border-radius: 8px;
     color: #253244;
+    font: inherit;
+    font-size: 1rem;
+    min-height: auto;
     padding: 8px 12px;
     text-decoration: none;
     background: #ffffff;
 }
 
 .nav a.active,
-.nav a:hover {
+.nav a:hover,
+.nav-button:hover {
     border-color: #2563eb;
     color: #ffffff;
     background: #2563eb;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.user-pill {
+    border: 1px solid #a7d7b8;
+    border-radius: 999px;
+    background: #eefaf1;
+    color: #234b2f;
+    font-weight: 700;
+    padding: 8px 12px;
 }
 
 main.container {
@@ -122,6 +141,21 @@ button:hover {
     background: #1d4ed8;
 }
 
+.nav .nav-button {
+    background: #ffffff;
+    border-color: #cbd5d0;
+    color: #253244;
+    font-weight: 400;
+    min-height: auto;
+    padding: 8px 12px;
+}
+
+.nav .nav-button:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
 .button.secondary {
     background: #ffffff;
     border-color: #cbd5d0;
@@ -172,6 +206,31 @@ button:hover {
 
 .form-panel {
     padding: 22px;
+}
+
+.auth-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 28px;
+    align-items: start;
+}
+
+.auth-copy {
+    padding-top: 12px;
+}
+
+.auth-panel {
+    max-width: 420px;
+}
+
+.form-note {
+    color: #5b6470;
+    margin: 16px 0 0;
+}
+
+.form-note a {
+    color: #2563eb;
+    font-weight: 700;
 }
 
 .form-grid {
@@ -333,8 +392,13 @@ dd {
 
     .filter-form,
     .form-grid,
-    .details-grid {
+    .details-grid,
+    .auth-layout {
         grid-template-columns: 1fr;
+    }
+
+    .auth-panel {
+        max-width: none;
     }
 
     .filter-actions {
@@ -343,7 +407,8 @@ dd {
     }
 
     .button,
-    button {
+    button,
+    .nav-button {
         width: 100%;
     }
 

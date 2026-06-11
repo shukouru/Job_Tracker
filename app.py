@@ -1,13 +1,23 @@
 from datetime import datetime, timezone
+from functools import wraps
 import os
+import re
 import sqlite3
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, g, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE") == "1",
+)
 
 DATABASE = os.environ.get("DATABASE_PATH", "jobs.db")
 STATUSES = ["未応募", "応募済み", "面接予定", "内定", "不合格"]
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,30}$")
 
 
 def ensure_database_directory():
@@ -20,6 +30,7 @@ def get_db_connection():
     ensure_database_directory()
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -35,8 +46,18 @@ def init_db():
     conn = get_db_connection()
 
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS applications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             company TEXT NOT NULL,
             position TEXT NOT NULL,
             status TEXT NOT NULL,
@@ -44,23 +65,31 @@ def init_db():
             memo TEXT,
             acceptance_rate TEXT,
             starting_salary TEXT,
-            is_deleted INTEGER DEFAULT 0
+            is_deleted INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
 
+    add_column_if_missing(conn, "applications", "user_id", "user_id INTEGER REFERENCES users (id)")
     add_column_if_missing(conn, "applications", "acceptance_rate", "acceptance_rate TEXT")
     add_column_if_missing(conn, "applications", "starting_salary", "starting_salary TEXT")
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             name TEXT,
             user_group TEXT,
             rating INTEGER,
             comments TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
+
+    add_column_if_missing(conn, "feedback", "user_id", "user_id INTEGER REFERENCES users (id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications (user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback (user_id)")
 
     conn.commit()
     conn.close()
@@ -92,12 +121,165 @@ def validate_application_form(form_data):
     return None
 
 
+def normalize_username(username):
+    return username.strip().lower()
+
+
+def validate_registration(username, password, confirm_password):
+    if not USERNAME_PATTERN.fullmatch(username):
+        return "Username must be 3-30 characters using letters, numbers, dot, underscore, or hyphen."
+
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+
+    if password != confirm_password:
+        return "Passwords do not match."
+
+    return None
+
+
+def safe_next_url(next_url):
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+    return url_for("show_applications")
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if g.user is None:
+            return redirect(url_for("login", next=request.path))
+        return view(*args, **kwargs)
+
+    return wrapped_view
+
+
+@app.before_request
+def load_logged_in_user():
+    user_id = session.get("user_id")
+    g.user = None
+
+    if user_id is None:
+        return
+
+    conn = get_db_connection()
+    g.user = conn.execute("""
+        SELECT id, username
+        FROM users
+        WHERE id = ?
+    """, (user_id,)).fetchone()
+    conn.close()
+
+    if g.user is None:
+        session.clear()
+
+
+@app.context_processor
+def inject_current_user():
+    return {"current_user": g.get("user")}
+
+
 @app.route("/")
 def home():
+    if g.user is None:
+        return redirect(url_for("login"))
+
     return redirect(url_for("show_applications"))
 
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if g.user is not None:
+        return redirect(url_for("show_applications"))
+
+    if request.method == "POST":
+        username = normalize_username(clean_form_value("username"))
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        error = validate_registration(username, password, confirm_password)
+
+        if error:
+            return render_template(
+                "register.html",
+                error=error,
+                form={"username": username}
+            ), 400
+
+        conn = get_db_connection()
+
+        try:
+            cursor = conn.execute("""
+                INSERT INTO users (username, password_hash, created_at)
+                VALUES (?, ?, ?)
+            """, (
+                username,
+                generate_password_hash(password),
+                datetime.now(timezone.utc).isoformat(timespec="seconds")
+            ))
+            conn.commit()
+            new_user_id = cursor.lastrowid
+        except sqlite3.IntegrityError:
+            conn.close()
+            return render_template(
+                "register.html",
+                error="That username is already taken.",
+                form={"username": username}
+            ), 400
+
+        conn.close()
+        session.clear()
+        session["user_id"] = new_user_id
+
+        return redirect(url_for("show_applications"))
+
+    return render_template("register.html", form={})
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if g.user is not None:
+        return redirect(url_for("show_applications"))
+
+    next_url = request.args.get("next", "")
+
+    if request.method == "POST":
+        username = normalize_username(clean_form_value("username"))
+        password = request.form.get("password", "")
+        next_url = request.form.get("next", "")
+
+        conn = get_db_connection()
+        user = conn.execute("""
+            SELECT id, username, password_hash
+            FROM users
+            WHERE username = ?
+        """, (username,)).fetchone()
+        conn.close()
+
+        if user is None or not check_password_hash(user["password_hash"], password):
+            return render_template(
+                "login.html",
+                error="Incorrect username or password.",
+                form={"username": username},
+                next_url=next_url
+            ), 400
+
+        session.clear()
+        session["user_id"] = user["id"]
+
+        return redirect(safe_next_url(next_url))
+
+    return render_template("login.html", form={}, next_url=next_url)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/applications")
+@login_required
 def show_applications():
     search = request.args.get("search", "").strip()
     status = request.args.get("status", "").strip()
@@ -111,9 +293,10 @@ def show_applications():
     query = """
         SELECT * FROM applications
         WHERE is_deleted = 0
+        AND user_id = ?
     """
 
-    params = []
+    params = [g.user["id"]]
 
     if search:
         query += """
@@ -161,6 +344,7 @@ def show_applications():
 
 
 @app.route("/applications/add", methods=["GET", "POST"])
+@login_required
 def add_application():
     if request.method == "POST":
         form_data = application_form_data()
@@ -179,6 +363,7 @@ def add_application():
         conn.execute("""
             INSERT INTO applications (
                 company,
+                user_id,
                 position,
                 status,
                 deadline,
@@ -186,9 +371,10 @@ def add_application():
                 acceptance_rate,
                 starting_salary
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             form_data["company"],
+            g.user["id"],
             form_data["position"],
             form_data["status"],
             form_data["deadline"],
@@ -206,30 +392,37 @@ def add_application():
 
 
 @app.route("/applications/<int:application_id>/trash", methods=["POST"])
+@login_required
 def move_to_trash(application_id):
     conn = get_db_connection()
 
-    conn.execute("""
+    cursor = conn.execute("""
         UPDATE applications
         SET is_deleted = 1
         WHERE id = ?
-    """, (application_id,))
+        AND user_id = ?
+    """, (application_id, g.user["id"]))
 
     conn.commit()
     conn.close()
+
+    if cursor.rowcount == 0:
+        abort(404)
 
     return redirect(url_for("show_applications"))
 
 
 @app.route("/trash")
+@login_required
 def show_trash():
     conn = get_db_connection()
 
     applications = conn.execute("""
         SELECT * FROM applications
         WHERE is_deleted = 1
+        AND user_id = ?
         ORDER BY id DESC
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
 
     conn.close()
 
@@ -237,29 +430,36 @@ def show_trash():
 
 
 @app.route("/applications/<int:application_id>/restore", methods=["POST"])
+@login_required
 def restore_application(application_id):
     conn = get_db_connection()
 
-    conn.execute("""
+    cursor = conn.execute("""
         UPDATE applications
         SET is_deleted = 0
         WHERE id = ?
-    """, (application_id,))
+        AND user_id = ?
+    """, (application_id, g.user["id"]))
 
     conn.commit()
     conn.close()
+
+    if cursor.rowcount == 0:
+        abort(404)
 
     return redirect(url_for("show_trash"))
 
 
 @app.route("/applications/<int:application_id>/edit", methods=["GET", "POST"])
+@login_required
 def edit_application(application_id):
     conn = get_db_connection()
 
     application = conn.execute("""
         SELECT * FROM applications
         WHERE id = ?
-    """, (application_id,)).fetchone()
+        AND user_id = ?
+    """, (application_id, g.user["id"])).fetchone()
 
     if application is None:
         conn.close()
@@ -283,6 +483,7 @@ def edit_application(application_id):
             UPDATE applications
             SET company = ?, position = ?, status = ?, deadline = ?, memo = ?, acceptance_rate = ?, starting_salary = ?
             WHERE id = ?
+            AND user_id = ?
         """, (
             form_data["company"],
             form_data["position"],
@@ -291,7 +492,8 @@ def edit_application(application_id):
             form_data["memo"],
             form_data["acceptance_rate"],
             form_data["starting_salary"],
-            application_id
+            application_id,
+            g.user["id"]
         ))
 
         conn.commit()
@@ -310,21 +512,27 @@ def edit_application(application_id):
 
 
 @app.route("/applications/<int:application_id>/delete", methods=["POST"])
+@login_required
 def delete_application(application_id):
     conn = get_db_connection()
 
-    conn.execute("""
+    cursor = conn.execute("""
         DELETE FROM applications
         WHERE id = ?
-    """, (application_id,))
+        AND user_id = ?
+    """, (application_id, g.user["id"]))
 
     conn.commit()
     conn.close()
+
+    if cursor.rowcount == 0:
+        abort(404)
 
     return redirect(url_for("show_trash"))
 
 
 @app.route("/feedback", methods=["GET", "POST"])
+@login_required
 def feedback():
     if request.method == "POST":
         form_data = {
@@ -359,9 +567,10 @@ def feedback():
 
         conn = get_db_connection()
         conn.execute("""
-            INSERT INTO feedback (name, user_group, rating, comments, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO feedback (user_id, name, user_group, rating, comments, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
+            g.user["id"],
             form_data["name"],
             form_data["user_group"],
             rating,

@@ -15,10 +15,19 @@
             </div>
 
             <nav class="nav" aria-label="Main navigation">
-                <a href="{{ url_for('show_applications') }}" {% if request.endpoint == "show_applications" %}class="active"{% endif %}>Applications</a>
-                <a href="{{ url_for('add_application') }}" {% if request.endpoint == "add_application" %}class="active"{% endif %}>Add</a>
-                <a href="{{ url_for('feedback') }}" {% if request.endpoint == "feedback" %}class="active"{% endif %}>Feedback</a>
-                <a href="{{ url_for('show_trash') }}" {% if request.endpoint == "show_trash" %}class="active"{% endif %}>Trash</a>
+                {% if current_user %}
+                    <a href="{{ url_for('show_applications') }}" {% if request.endpoint == "show_applications" %}class="active"{% endif %}>Applications</a>
+                    <a href="{{ url_for('add_application') }}" {% if request.endpoint == "add_application" %}class="active"{% endif %}>Add</a>
+                    <a href="{{ url_for('feedback') }}" {% if request.endpoint == "feedback" %}class="active"{% endif %}>Feedback</a>
+                    <a href="{{ url_for('show_trash') }}" {% if request.endpoint == "show_trash" %}class="active"{% endif %}>Trash</a>
+                    <span class="user-pill">{{ current_user.username }}</span>
+                    <form class="logout-form" action="{{ url_for('logout') }}" method="POST">
+                        <button type="submit" class="nav-button">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('login') }}" {% if request.endpoint == "login" %}class="active"{% endif %}>Login</a>
+                    <a href="{{ url_for('register') }}" {% if request.endpoint == "register" %}class="active"{% endif %}>Register</a>
+                {% endif %}
             </nav>
         </div>
     </header>
