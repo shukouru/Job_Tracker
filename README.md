@@ -57,57 +57,162 @@ job_tracker/
 ```
 # Job Application Tracker
 
-A Flask web application for managing internship and job applications.
+A small Flask + SQLite web app for tracking internship and job applications.
 
-This app allows users to add, edit, search, filter, sort, and manage job applications using a simple web interface. Data is stored locally using SQLite.
+This project is intended for safe sharing with classmates and test users. Do not
+commit real job-search data, personal contact details, or confidential interview
+information.
+
+## Project Background
+
+I built this app to practice backend web development with Flask and SQLite while
+creating a practical tool for organizing internship and job applications.
+
+The next goal is to improve it collaboratively with CS-major friends, let
+non-CS students test it, collect feedback, and use that feedback to make the app
+clearer and easier to use.
 
 ## Features
 
-- Add new job applications
-- Edit existing applications
-- Move applications to trash
-- Restore applications from trash
-- Permanently delete applications
-- Search applications by company, position, or memo
-- Filter applications by status
-- Sort applications by deadline or company name
-- Store data using SQLite
-- Basic responsive CSS styling
+- Add, edit, search, filter, sort, trash, restore, and permanently delete
+  applications
+- Track company, position, status, deadline, memo, acceptance rate, and starting
+  salary
+- Store application data locally with SQLite
+- Responsive UI with bilingual labels for English/Japanese users
+- Feedback form at `/feedback`
+- Feedback is saved to a separate `feedback` table and is not displayed publicly
+- Render-ready startup command with Gunicorn
+
+## Privacy And Data Safety
+
+- `*.db`, `.env`, virtual environments, caches, and local tool files are ignored
+  by Git.
+- The local SQLite database is created automatically and should stay on each
+  developer's machine.
+- For demos, use fake companies or non-sensitive sample data.
+- This version does not include authentication, so do not publish a production
+  instance containing private data.
 
 ## Tech Stack
 
 - Python
 - Flask
 - SQLite
-- HTML
+- HTML/Jinja templates
 - CSS
-
-## Project Purpose
-
-I built this project to practice backend web development with Flask and SQLite while creating a practical tool for managing internship and job applications.
-
-This project helped me practice:
-
-- Building routes with Flask
-- Handling GET and POST requests
-- Rendering HTML templates with Jinja
-- Using SQLite for persistent data storage
-- Creating CRUD functionality
-- Implementing search, filtering, and sorting
-- Organizing a small web application project
+- Gunicorn for production serving
 
 ## Folder Structure
 
 ```text
 job_tracker/
 ├── app.py
+├── requirements.txt
+├── Procfile
 ├── static/
 │   └── style.css
 ├── templates/
+│   ├── base.html
 │   ├── applications.html
 │   ├── add_application.html
 │   ├── edit_application.html
+│   ├── feedback.html
 │   └── trash.html
 ├── .gitignore
 └── README.md
 ```
+
+`jobs.db` is intentionally not listed because it is local data and should not be
+committed.
+
+## Local Setup
+
+1. Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+2. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the app:
+
+```bash
+python app.py
+```
+
+4. Open the app:
+
+```text
+http://localhost:5000
+```
+
+The app creates the `applications` and `feedback` tables automatically on
+startup.
+
+## Collaboration Notes
+
+- Work on a feature branch before opening a pull request or sharing changes.
+- Do not commit `jobs.db`, screenshots with personal data, or `.env` files.
+- Keep UI text understandable for non-CS testers.
+- Prefer small changes that preserve the current add/edit/search/trash flows.
+- Test at least these paths before sharing: add application, edit application,
+  move to trash, restore, delete forever, submit feedback.
+
+## User Feedback
+
+Test users can submit feedback from `/feedback`. The form records:
+
+- Optional name
+- User type
+- Ease-of-use rating from 1 to 5
+- Written comments
+- Submission timestamp
+
+To inspect feedback locally:
+
+```bash
+sqlite3 jobs.db "SELECT id, user_group, rating, comments, created_at FROM feedback;"
+```
+
+Use the comments to identify confusing labels, missing fields, and workflows
+that should be simplified for non-CS students.
+
+## Render Deployment
+
+Render's Flask guide uses:
+
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn app:app`
+
+This repo also includes a `Procfile` with the same Gunicorn command.
+
+For a temporary demo, the default SQLite path (`jobs.db`) is enough, but data can
+be lost when the service restarts or redeploys. For feedback that needs to
+persist, attach a Render persistent disk and set:
+
+```text
+DATABASE_PATH=/var/data/jobs.db
+```
+
+Then mount the disk at `/var/data`.
+
+References:
+
+- Render Flask deployment docs: https://render.com/docs/deploy-flask
+- Render persistent disk docs: https://render.com/docs/disks
+
+## Future Improvements
+
+- Add authentication before collecting real personal job-search data
+- Add an admin-only feedback review page
+- Add CSV export/import for applications
+- Add dashboard statistics by status and deadline
+- Add automated tests for routes and database setup
+- Consider Postgres for a multi-user hosted version

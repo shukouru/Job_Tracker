@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default("Job Application Tracker") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-content">
+            <div>
+                <a class="brand" href="{{ url_for('show_applications') }}">Job Application Tracker</a>
+                <p class="tagline">就活・インターン応募管理</p>
+            </div>
+
+            <nav class="nav" aria-label="Main navigation">
+                <a href="{{ url_for('show_applications') }}" {% if request.endpoint == "show_applications" %}class="active"{% endif %}>Applications</a>
+                <a href="{{ url_for('add_application') }}" {% if request.endpoint == "add_application" %}class="active"{% endif %}>Add</a>
+                <a href="{{ url_for('feedback') }}" {% if request.endpoint == "feedback" %}class="active"{% endif %}>Feedback</a>
+                <a href="{{ url_for('show_trash') }}" {% if request.endpoint == "show_trash" %}class="active"{% endif %}>Trash</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="privacy-banner">
+            <strong>Testing note:</strong>
+            共有デモでは本名、住所、電話番号、実在する選考の機密情報を入力しないでください。
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

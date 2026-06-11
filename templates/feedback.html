@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set title = "Feedback" %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <h1>Feedback</h1>
+        <p class="muted">CS専攻以外の学生にも分かりやすいかを確認するためのフォームです。</p>
+    </div>
+</section>
+
+{% if submitted %}
+    <div class="alert success">Feedback saved. Thank you.</div>
+{% endif %}
+
+{% if error %}
+    <div class="alert error">{{ error }}</div>
+{% endif %}
+
+{% set selected_group = form.get("user_group") or "" %}
+{% set selected_rating = form.get("rating") or "" %}
+
+<form action="{{ url_for('feedback') }}" method="POST" class="form-panel">
+    <label class="field">
+        <span>Name / 名前（任意）</span>
+        <input
+            type="text"
+            name="name"
+            value="{{ form.get('name') or '' }}"
+            placeholder="Optional"
+        >
+    </label>
+
+    <div class="form-grid">
+        <label class="field">
+            <span>User Type / 利用者タイプ</span>
+            <select name="user_group">
+                <option value="">Choose one</option>
+                <option value="CS major" {% if selected_group == "CS major" %}selected{% endif %}>CS major</option>
+                <option value="Non-CS major" {% if selected_group == "Non-CS major" %}selected{% endif %}>Non-CS major</option>
+                <option value="Career support" {% if selected_group == "Career support" %}selected{% endif %}>Career support</option>
+                <option value="Other" {% if selected_group == "Other" %}selected{% endif %}>Other</option>
+            </select>
+        </label>
+
+        <label class="field">
+            <span>Ease of Use / 使いやすさ</span>
+            <select name="rating">
+                <option value="">No rating</option>
+                {% for value in range(1, 6) %}
+                    <option value="{{ value }}" {% if selected_rating == value|string %}selected{% endif %}>{{ value }} / 5</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <label class="field">
+        <span>Comments / コメント</span>
+        <textarea
+            name="comments"
+            placeholder="What was confusing? What should be improved?"
+            required
+        >{{ form.get('comments') or '' }}</textarea>
+    </label>
+
+    <div class="actions">
+        <button type="submit">Submit Feedback</button>
+    </div>
+</form>
+{% endblock %}

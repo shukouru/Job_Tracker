@@ -1,4 +1,30 @@
-jobs.db
-__pycache__/
-*.pyc
+# Local data and generated databases
+*.db
+*.sqlite
+*.sqlite3
+data/
+instance/
+
+# Secrets and local environment files
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+
+# Test and tool caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS and editor files
+.DS_Store
+.vscode/
+.idea/

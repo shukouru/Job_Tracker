@@ -1,32 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>Trash</title>
-</head>
-<body>
-    <h1>Trash</h1>
+{% extends "base.html" %}
+{% set title = "Trash" %}
 
-    <a href="/applications">Back to Applications</a>
+{% block content %}
+<section class="page-heading">
+    <div>
+        <h1>Trash</h1>
+        <p class="muted">Review deleted applications before permanent removal.</p>
+    </div>
+</section>
 
-    <hr>
-
+<div class="application-list">
     {% for application in applications %}
-        <div>
-            <h2>{{ application.company }}</h2>
-            <p>Position: {{ application.position }}</p>
-            <p>Status: {{ application.status }}</p>
+        <article class="card">
+            <div class="card-header">
+                <h2>{{ application.company }}</h2>
+                <span class="badge">{{ application.status }}</span>
+            </div>
 
-            <form action="/applications/{{ application.id }}/restore" method="POST">
-                <button type="submit">Restore</button>
-            </form>
+            <dl class="details-grid">
+                <div>
+                    <dt>Position / 職種</dt>
+                    <dd>{{ application.position }}</dd>
+                </div>
+                <div>
+                    <dt>Deadline / 締切</dt>
+                    <dd>{{ application.deadline or "Not set" }}</dd>
+                </div>
+            </dl>
 
-            <form action="/applications/{{ application.id }}/delete" method="POST">
-                <button type="submit">Delete Forever</button>
-            </form>
+            <div class="actions">
+                <form action="{{ url_for('restore_application', application_id=application.id) }}" method="POST">
+                    <button type="submit" class="success-button">Restore</button>
+                </form>
+
+                <form action="{{ url_for('delete_application', application_id=application.id) }}" method="POST">
+                    <button type="submit" class="danger-button">Delete Forever</button>
+                </form>
+            </div>
+        </article>
+    {% else %}
+        <div class="empty-message">
+            Trash is empty.
         </div>
-
-        <hr>
     {% endfor %}
-</body>
-</html>
+</div>
+{% endblock %}

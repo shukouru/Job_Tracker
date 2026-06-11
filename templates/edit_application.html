@@ -1,37 +1,87 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>Edit Application</title>
-</head>
-<body>
-    <h1>Edit Application</h1>
+{% extends "base.html" %}
+{% set title = "Edit Application" %}
 
-    <form action="/applications/{{ application.id }}/edit" method="POST">
-        <label>Company</label><br>
-        <input type="text" name="company" value="{{ application.company }}"><br><br>
+{% block content %}
+<section class="page-heading">
+    <div>
+        <h1>Edit Application</h1>
+        <p class="muted">{{ application.company }}</p>
+    </div>
+</section>
 
-        <label>Position</label><br>
-        <input type="text" name="position" value="{{ application.position }}"><br><br>
+{% if error %}
+    <div class="alert error">{{ error }}</div>
+{% endif %}
 
-        <label>Status</label><br>
-        <select name="status">
-            <option value="未応募" {% if application.status == "未応募" %}selected{% endif %}>未応募</option>
-            <option value="応募済み" {% if application.status == "応募済み" %}selected{% endif %}>応募済み</option>
-            <option value="面接予定" {% if application.status == "面接予定" %}selected{% endif %}>面接予定</option>
-            <option value="内定" {% if application.status == "内定" %}selected{% endif %}>内定</option>
-            <option value="不合格" {% if application.status == "不合格" %}selected{% endif %}>不合格</option>
-        </select><br><br>
-        <label>Deadline</label><br>
-        <input type="date" name="deadline" value="{{ application.deadline }}"><br><br>
+{% set selected_status = form.get("status") or application.status %}
 
-        <label>Memo</label><br>
-        <textarea name="memo">{{ application.memo }}</textarea><br><br>
+<form action="{{ url_for('edit_application', application_id=application.id) }}" method="POST" class="form-panel">
+    <label class="field">
+        <span>Company / 企業名</span>
+        <input
+            type="text"
+            name="company"
+            value="{{ form.get('company') or '' }}"
+            required
+        >
+    </label>
+
+    <label class="field">
+        <span>Position / 職種</span>
+        <input
+            type="text"
+            name="position"
+            value="{{ form.get('position') or '' }}"
+            required
+        >
+    </label>
+
+    <div class="form-grid">
+        <label class="field">
+            <span>Status / 状態</span>
+            <select name="status" required>
+                {% for item in statuses %}
+                    <option value="{{ item }}" {% if selected_status == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="field">
+            <span>Deadline / 締切</span>
+            <input type="date" name="deadline" value="{{ form.get('deadline') or '' }}">
+        </label>
+    </div>
+
+    <div class="form-grid">
+        <label class="field">
+            <span>Acceptance Rate / 採用倍率</span>
+            <input
+                type="text"
+                name="acceptance_rate"
+                value="{{ form.get('acceptance_rate') or '' }}"
+                placeholder="20倍, 5%, about 1 in 100"
+            >
+        </label>
+
+        <label class="field">
+            <span>Starting Salary / 初年給</span>
+            <input
+                type="text"
+                name="starting_salary"
+                value="{{ form.get('starting_salary') or '' }}"
+                placeholder="5,000,000円, $70,000"
+            >
+        </label>
+    </div>
+
+    <label class="field">
+        <span>Memo / メモ</span>
+        <textarea name="memo">{{ form.get('memo') or '' }}</textarea>
+    </label>
+
+    <div class="actions">
         <button type="submit">Save Changes</button>
-    </form>
-
-    <br>
-
-    <a href="/applications">Back</a>
-</body>
-</html>
+        <a class="button secondary" href="{{ url_for('show_applications') }}">Cancel</a>
+    </div>
+</form>
+{% endblock %}
