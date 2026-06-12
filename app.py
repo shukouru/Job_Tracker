@@ -17,6 +17,7 @@ app.config.update(
 
 DATABASE = os.environ.get("DATABASE_PATH", "jobs.db")
 STATUSES = ["未応募", "応募済み", "面接予定", "内定", "不合格"]
+PRIORITIES = ["高", "中", "低"]
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,30}$")
 
 
@@ -61,18 +62,18 @@ def init_db():
             company TEXT NOT NULL,
             position TEXT NOT NULL,
             status TEXT NOT NULL,
+            priority TEXT DEFAULT '中',
+            url TEXT,
             deadline TEXT,
             memo TEXT,
-            acceptance_rate TEXT,
-            starting_salary TEXT,
             is_deleted INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
 
     add_column_if_missing(conn, "applications", "user_id", "user_id INTEGER REFERENCES users (id)")
-    add_column_if_missing(conn, "applications", "acceptance_rate", "acceptance_rate TEXT")
-    add_column_if_missing(conn, "applications", "starting_salary", "starting_salary TEXT")
+    add_column_if_missing(conn, "applications", "priority", "priority TEXT DEFAULT '中'")
+    add_column_if_missing(conn, "applications", "url", "url TEXT")
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS feedback (
@@ -104,10 +105,10 @@ def application_form_data():
         "company": clean_form_value("company"),
         "position": clean_form_value("position"),
         "status": clean_form_value("status"),
+        "priority": clean_form_value("priority") or "中",
+        "url": clean_form_value("url"),
         "deadline": clean_form_value("deadline"),
         "memo": clean_form_value("memo"),
-        "acceptance_rate": clean_form_value("acceptance_rate"),
-        "starting_salary": clean_form_value("starting_salary"),
     }
 
 
@@ -117,6 +118,12 @@ def validate_application_form(form_data):
 
     if form_data["status"] not in STATUSES:
         return "Please choose a valid status."
+
+    if form_data["priority"] not in PRIORITIES:
+        return "Please choose a valid priority."
+
+    if form_data["url"] and not form_data["url"].startswith(("http://", "https://")):
+        return "URL must start with http:// or https://."
 
     return None
 
@@ -303,9 +310,9 @@ def show_applications():
             AND (
                 company LIKE ?
                 OR position LIKE ?
+                OR url LIKE ?
                 OR memo LIKE ?
-                OR acceptance_rate LIKE ?
-                OR starting_salary LIKE ?
+                OR priority LIKE ?
             )
         """
         search_term = "%" + search + "%"
@@ -355,7 +362,8 @@ def add_application():
                 "add_application.html",
                 error=error,
                 form=form_data,
-                statuses=STATUSES
+                statuses=STATUSES,
+                priorities=PRIORITIES
             ), 400
 
         conn = get_db_connection()
@@ -366,10 +374,10 @@ def add_application():
                 user_id,
                 position,
                 status,
+                priority,
+                url,
                 deadline,
-                memo,
-                acceptance_rate,
-                starting_salary
+                memo
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
@@ -377,10 +385,10 @@ def add_application():
             g.user["id"],
             form_data["position"],
             form_data["status"],
+            form_data["priority"],
+            form_data["url"],
             form_data["deadline"],
-            form_data["memo"],
-            form_data["acceptance_rate"],
-            form_data["starting_salary"]
+            form_data["memo"]
         ))
 
         conn.commit()
@@ -388,7 +396,12 @@ def add_application():
 
         return redirect(url_for("show_applications"))
 
-    return render_template("add_application.html", form={}, statuses=STATUSES)
+    return render_template(
+        "add_application.html",
+        form={},
+        statuses=STATUSES,
+        priorities=PRIORITIES
+    )
 
 
 @app.route("/applications/<int:application_id>/trash", methods=["POST"])
@@ -476,22 +489,23 @@ def edit_application(application_id):
                 application=application,
                 error=error,
                 form=form_data,
-                statuses=STATUSES
+                statuses=STATUSES,
+                priorities=PRIORITIES
             ), 400
 
         conn.execute("""
             UPDATE applications
-            SET company = ?, position = ?, status = ?, deadline = ?, memo = ?, acceptance_rate = ?, starting_salary = ?
+            SET company = ?, position = ?, status = ?, priority = ?, url = ?, deadline = ?, memo = ?
             WHERE id = ?
             AND user_id = ?
         """, (
             form_data["company"],
             form_data["position"],
             form_data["status"],
+            form_data["priority"],
+            form_data["url"],
             form_data["deadline"],
             form_data["memo"],
-            form_data["acceptance_rate"],
-            form_data["starting_salary"],
             application_id,
             g.user["id"]
         ))
@@ -507,7 +521,8 @@ def edit_application(application_id):
         "edit_application.html",
         application=application,
         form=dict(application),
-        statuses=STATUSES
+        statuses=STATUSES,
+        priorities=PRIORITIES
     )
 
 
@@ -594,7 +609,7 @@ init_db()
 
 if __name__ == "__main__":
     app.run(
-        host="0.0.0.0",
+        host=os.environ.get("HOST", "127.0.0.1"),
         port=int(os.environ.get("PORT", 5000)),
         debug=os.environ.get("FLASK_DEBUG") == "1"
     )

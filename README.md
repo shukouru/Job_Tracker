@@ -20,8 +20,7 @@ to understand.
 - Passwords stored with Werkzeug password hashing
 - User-specific application lists, trash, edit, restore, and delete actions
 - Add, edit, search, filter, and sort applications
-- Track company, position, status, deadline, memo, acceptance rate, and starting
-  salary
+- Track company, position, status, priority, URL, deadline, and memo
 - Feedback form at `/feedback`
 - Feedback is saved to a separate `feedback` table and is not displayed publicly
 - Responsive UI with English/Japanese labels

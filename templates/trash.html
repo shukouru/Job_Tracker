@@ -23,6 +23,10 @@
                     <dd>{{ application.position }}</dd>
                 </div>
                 <div>
+                    <dt>Priority / 優先度</dt>
+                    <dd>{{ application.priority or "中" }}</dd>
+                </div>
+                <div>
                     <dt>Deadline / 締切</dt>
                     <dd>{{ application.deadline or "Not set" }}</dd>
                 </div>

@@ -16,7 +16,7 @@
         <input
             type="text"
             name="search"
-            placeholder="Company, role, memo, salary"
+            placeholder="Company, role, URL, memo, priority"
             value="{{ search or '' }}"
         >
     </label>
@@ -60,16 +60,22 @@
                     <dd>{{ application.position }}</dd>
                 </div>
                 <div>
+                    <dt>Priority / 優先度</dt>
+                    <dd>{{ application.priority or "中" }}</dd>
+                </div>
+                <div>
+                    <dt>URL</dt>
+                    <dd>
+                        {% if application.url %}
+                            <a href="{{ application.url }}" target="_blank" rel="noopener noreferrer">Open URL</a>
+                        {% else %}
+                            Not added
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
                     <dt>Deadline / 締切</dt>
                     <dd>{{ application.deadline or "Not set" }}</dd>
-                </div>
-                <div>
-                    <dt>Acceptance Rate / 採用倍率</dt>
-                    <dd>{{ application.acceptance_rate or "Not added" }}</dd>
-                </div>
-                <div>
-                    <dt>Starting Salary / 初年給</dt>
-                    <dd>{{ application.starting_salary or "Not added" }}</dd>
                 </div>
             </dl>
 

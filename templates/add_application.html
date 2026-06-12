@@ -14,6 +14,7 @@
 {% endif %}
 
 {% set selected_status = form.get("status") or "未応募" %}
+{% set selected_priority = form.get("priority") or "中" %}
 
 <form action="{{ url_for('add_application') }}" method="POST" class="form-panel">
     <label class="field">
@@ -49,30 +50,29 @@
         </label>
 
         <label class="field">
-            <span>Deadline / 締切</span>
-            <input type="date" name="deadline" value="{{ form.get('deadline') or '' }}">
+            <span>Priority / 優先度</span>
+            <select name="priority" required>
+                {% for item in priorities %}
+                    <option value="{{ item }}" {% if selected_priority == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
         </label>
     </div>
 
     <div class="form-grid">
         <label class="field">
-            <span>Acceptance Rate / 採用倍率</span>
+            <span>URL</span>
             <input
-                type="text"
-                name="acceptance_rate"
-                value="{{ form.get('acceptance_rate') or '' }}"
-                placeholder="20倍, 5%, about 1 in 100"
+                type="url"
+                name="url"
+                value="{{ form.get('url') or '' }}"
+                placeholder="https://example.com/careers"
             >
         </label>
 
         <label class="field">
-            <span>Starting Salary / 初年給</span>
-            <input
-                type="text"
-                name="starting_salary"
-                value="{{ form.get('starting_salary') or '' }}"
-                placeholder="5,000,000円, $70,000"
-            >
+            <span>Deadline / 締切</span>
+            <input type="date" name="deadline" value="{{ form.get('deadline') or '' }}">
         </label>
     </div>
 
