@@ -19,7 +19,7 @@ to understand.
 - Account registration, login, and logout
 - Passwords stored with Werkzeug password hashing
 - User-specific application lists, trash, edit, restore, and delete actions
-- Add, edit, search, filter, and sort applications
+- Add, edit, search, filter, and sort applications, including by priority
 - Track company, position, status, priority, URL, deadline, and memo
 - Feedback form at `/feedback`
 - Feedback is saved to a separate `feedback` table and is not displayed publicly

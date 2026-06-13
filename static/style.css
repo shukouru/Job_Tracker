@@ -191,7 +191,7 @@ button:hover {
 
 .filter-form {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(160px, 190px) minmax(160px, 190px) auto;
+    grid-template-columns: minmax(220px, 1fr) minmax(140px, 170px) minmax(140px, 170px) minmax(160px, 190px) auto;
     gap: 12px;
     align-items: end;
     padding: 16px;

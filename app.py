@@ -60,7 +60,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             company TEXT NOT NULL,
-            position TEXT NOT NULL,
+            position TEXT,
             status TEXT NOT NULL,
             priority TEXT DEFAULT '中',
             url TEXT,
@@ -113,8 +113,8 @@ def application_form_data():
 
 
 def validate_application_form(form_data):
-    if not form_data["company"] or not form_data["position"]:
-        return "Company and position are required."
+    if not form_data["company"]:
+        return "Company is required."
 
     if form_data["status"] not in STATUSES:
         return "Please choose a valid status."
@@ -290,10 +290,14 @@ def logout():
 def show_applications():
     search = request.args.get("search", "").strip()
     status = request.args.get("status", "").strip()
+    priority = request.args.get("priority", "").strip()
     sort = request.args.get("sort")
 
     if status not in STATUSES:
         status = ""
+
+    if priority not in PRIORITIES:
+        priority = ""
 
     conn = get_db_connection()
 
@@ -324,6 +328,12 @@ def show_applications():
         """
         params.append(status)
 
+    if priority:
+        query += """
+            AND priority = ?
+        """
+        params.append(priority)
+
     if sort == "deadline":
         query += """
             ORDER BY deadline ASC
@@ -331,6 +341,18 @@ def show_applications():
     elif sort == "company":
         query += """
             ORDER BY company ASC
+        """
+    elif sort == "priority":
+        query += """
+            ORDER BY
+                CASE priority
+                    WHEN '高' THEN 1
+                    WHEN '中' THEN 2
+                    WHEN '低' THEN 3
+                    ELSE 4
+                END,
+                deadline ASC,
+                id DESC
         """
     else:
         query += """
@@ -345,8 +367,10 @@ def show_applications():
         applications=applications,
         search=search,
         status=status,
+        priority=priority,
         sort=sort,
-        statuses=STATUSES
+        statuses=STATUSES,
+        priorities=PRIORITIES
     )
 
 
@@ -467,6 +491,7 @@ def restore_application(application_id):
 @login_required
 def edit_application(application_id):
     conn = get_db_connection()
+    next_url = safe_next_url(request.values.get("next", ""))
 
     application = conn.execute("""
         SELECT * FROM applications
@@ -490,7 +515,8 @@ def edit_application(application_id):
                 error=error,
                 form=form_data,
                 statuses=STATUSES,
-                priorities=PRIORITIES
+                priorities=PRIORITIES,
+                next_url=next_url
             ), 400
 
         conn.execute("""
@@ -513,7 +539,7 @@ def edit_application(application_id):
         conn.commit()
         conn.close()
 
-        return redirect(url_for("show_applications"))
+        return redirect(next_url)
 
     conn.close()
 
@@ -522,7 +548,8 @@ def edit_application(application_id):
         application=application,
         form=dict(application),
         statuses=STATUSES,
-        priorities=PRIORITIES
+        priorities=PRIORITIES,
+        next_url=next_url
     )
 
 

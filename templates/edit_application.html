@@ -17,6 +17,8 @@
 {% set selected_priority = form.get("priority") or "中" %}
 
 <form action="{{ url_for('edit_application', application_id=application.id) }}" method="POST" class="form-panel">
+    <input type="hidden" name="next" value="{{ next_url }}">
+
     <label class="field">
         <span>Company / 企業名</span>
         <input
@@ -33,7 +35,6 @@
             type="text"
             name="position"
             value="{{ form.get('position') or '' }}"
-            required
         >
     </label>
 
@@ -81,7 +82,7 @@
 
     <div class="actions">
         <button type="submit">Save Changes</button>
-        <a class="button secondary" href="{{ url_for('show_applications') }}">Cancel</a>
+        <a class="button secondary" href="{{ next_url }}">Cancel</a>
     </div>
 </form>
 {% endblock %}
